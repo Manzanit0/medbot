@@ -1,0 +1,10 @@
+[build]
+builder = "nixpacks"
+watchPatterns = ["cmd/bot/**"]
+buildCommand = "cd cmd/bot && go build -o ../../bin/bot ."
+
+[deploy]
+startCommand = "bin/bot"
+healthcheckPath = "/ping"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
