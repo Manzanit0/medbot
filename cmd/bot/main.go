@@ -40,7 +40,7 @@ func main() {
 		panic(err)
 	}
 
-	client, err := withings.New(os.Getenv("WITHINGS_CLIENT_ID"), os.Getenv("WITHINGS_CLIENT_SECRET"), fmt.Sprintf("https://%s", os.Getenv("HOST")))
+	client, err := withings.New(os.Getenv("WITHINGS_CLIENT_ID"), os.Getenv("WITHINGS_CLIENT_SECRET"), fmt.Sprintf("https://%s/auth/callback", os.Getenv("HOST")))
 	if err != nil {
 		panic(err)
 	}
@@ -109,7 +109,7 @@ func main() {
 		}
 
 		c.JSON(200, gin.H{
-			"message": "session saved",
+			"message": "session saved!",
 		})
 	})
 
@@ -134,33 +134,32 @@ func main() {
 			return
 		}
 
-		var message string
-
+		var series []string
 		for _, v := range slp.Body.Series {
-			st := ""
-			switch v.State {
-			case int(withings.Awake):
-				st = "Awake"
-			case int(withings.LightSleep):
-				st = "LightSleep"
-			case int(withings.DeepSleep):
-				st = "DeepSleep"
-			case int(withings.REM):
-				st = "REM"
+			sleepState := ""
+			switch withings.SleepState(v.State) {
+			case withings.Awake:
+				sleepState = "🙂 Awake"
+			case withings.LightSleep:
+				sleepState = "🥱 LightSleep"
+			case withings.DeepSleep:
+				sleepState = "😴 DeepSleep"
+			case withings.REM:
+				sleepState = "REM"
 			default:
-				st = "Unknown"
+				sleepState = "Unknown"
 			}
 
 			startTimeUnix := time.Unix(v.Startdate, 0)
 			endTimeUnix := time.Unix(v.Enddate, 0)
 
 			madridTimezone := time.FixedZone("Europe/Madrid", 2*60*60)
-			stime := (startTimeUnix.In(madridTimezone)).Format("2006-01-02 15:04:05")
-			etime := (endTimeUnix.In(madridTimezone)).Format("2006-01-02 15:04:05")
-			message += fmt.Sprintf("%s to %s: %s, Hr:%d, Rr:%d, Snoring:%d\n", stime, etime, st, v.Hr, v.Rr, v.Snoring)
+			start := (startTimeUnix.In(madridTimezone)).Format("2006-01-02 15:04")
+			end := (endTimeUnix.In(madridTimezone)).Format("2006-01-02 15:04")
+			series = append(series, fmt.Sprintf("%s to %s: %s", start, end, sleepState))
 		}
 		c.JSON(200, gin.H{
-			"message": message,
+			"sleep_series": series,
 		})
 	})
 

@@ -1,7 +1,8 @@
 [build]
 builder = "nixpacks"
 watchPatterns = ["cmd/bot/**"]
-buildCommand = "cd cmd/bot && go build -o ../../bin/bot ."
+buildCommand = "go build -o bin/bot ./cmd/bot"
+
 
 [deploy]
 startCommand = "bin/bot"
