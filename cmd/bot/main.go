@@ -40,7 +40,7 @@ func main() {
 		panic(err)
 	}
 
-	client, err := withings.New(os.Getenv("WITHINGS_CLIENT_ID"), os.Getenv("WITHINGS_CLIENT_SECRET"), fmt.Sprintf("https://%s/auth/callback", os.Getenv("HOST")))
+	withingsClient, err := withings.New(os.Getenv("WITHINGS_CLIENT_ID"), os.Getenv("WITHINGS_CLIENT_SECRET"), fmt.Sprintf("https://%s/auth/callback", os.Getenv("HOST")))
 	if err != nil {
 		panic(err)
 	}
@@ -56,24 +56,7 @@ func main() {
 	})
 
 	r.GET("/auth/login", func(c *gin.Context) {
-		url := client.Conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
-		// u, err := url.Parse("https://account.withings.com/oauth2_user/authorize2")
-		// if err != nil {
-		// 	slog.Error("failed to parse URL, WTF?", "error", err.Error())
-		// 	c.JSON(500, gin.H{
-		// 		"error": err.Error(),
-		// 	})
-		// }
-
-		// q := url.Values{}
-		// q.Set("access_type", "offline")
-		// q.Set("client_id", os.Getenv("WITHINGS_CLIENT_ID"))
-		// q.Set("redirect_uri", fmt.Sprintf("https://%s/auth/callback", os.Getenv("HOST")))
-		// q.Set("response_type", "code")
-		// q.Set("scope", "user.activity,user.metrics,user.info")
-		// q.Set("state", "foo")
-		// u.RawQuery = fmt.Sprintf("?%s", q.Encode())
-
+		url := withingsClient.Conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
 		c.Redirect(302, url)
 	})
 
@@ -89,7 +72,7 @@ func main() {
 
 		cl := &http.Client{Transport: &withings.OAuthTransport{}}
 		ctx := context.WithValue(context.Background(), oauth2.HTTPClient, cl)
-		token, err := client.Conf.Exchange(ctx, grantCode)
+		token, err := withingsClient.Conf.Exchange(ctx, grantCode)
 		if err != nil {
 			slog.Error("failed exchange oauth stuff", "error", err.Error())
 			c.JSON(500, gin.H{
@@ -97,8 +80,8 @@ func main() {
 			})
 		}
 
-		client.Token = token
-		client.Client = withings.GetClient(client.Conf, client.Token)
+		withingsClient.Token = token
+		withingsClient.Client = withings.GetClient(withingsClient.Conf, withingsClient.Token)
 
 		err = data.SaveToken(token)
 		if err != nil {
@@ -121,11 +104,11 @@ func main() {
 			})
 		}
 
-		client.Client = withings.GetClient(client.Conf, token)
+		withingsClient.Client = withings.GetClient(withingsClient.Conf, token)
 
 		t0 := time.Now()
 		adayago := t0.Add(-48 * time.Hour)
-		slp, err := client.GetSleep(adayago, t0, withings.HrSleep, withings.RrSleep, withings.SnoringSleep)
+		slp, err := withingsClient.GetSleep(adayago, t0, withings.HrSleep, withings.RrSleep, withings.SnoringSleep)
 		if err != nil {
 			slog.Error("failed to get sleep data", "error", err.Error())
 			c.JSON(500, gin.H{
